@@ -1,0 +1,16 @@
+{
+    "entries_count": 1,
+    "sample.pdf": {
+        "title": "sample",
+        "author": "Philip Hutchison",
+        "subject": null,
+        "creator": "Pages",
+        "producer": "Mac OS X 10.5.4 Quartz PDFContext",
+        "creation_date": "2008-07-01T05:24:47+00:00",
+        "modification_date": "2008-07-01T05:24:47+00:00",
+        "num_pages": 1,
+        "total_words": 415,
+        "total_images": 0,
+        "total_attachments": 0
+    }
+}
