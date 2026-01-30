@@ -1,8 +1,48 @@
+# Python
 .venv/
+venv/
+env/
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
 
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+
+# Data files (exclude from repo)
 *.jpg
+*.jpeg
 *.pdf
-*.log
-*.json
 *.png
+*.txt
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+
+# JSON metadata (optional - can track sample files)
+*.json
+
+# Backup directory
+backups/
+
+# OS
+.DS_Store
+Thumbs.db
