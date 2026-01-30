@@ -28,6 +28,7 @@ htmlcov/
 *.pdf
 *.png
 *.txt
+*.bin
 
 # Database files
 *.db

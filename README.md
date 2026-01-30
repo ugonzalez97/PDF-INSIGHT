@@ -292,15 +292,24 @@ Example:
 This version includes:
 
 - ✅ **SQLite Database** - Structured storage for all metadata and file references
+- ✅ **ChromaDB Vector Store** - Persistent storage for semantic embeddings
+- ✅ **Web Interface** - Modern, responsive UI with FastAPI and Jinja2 templates
+- ✅ **REST API** - Complete programmatic access to all functionality
+- ✅ **Semantic Search** - Natural language search through PDF content
+- ✅ **Text Chunking** - Intelligent text splitting for embeddings generation
+- ✅ **File Upload** - Drag-and-drop PDF upload through web interface
 - ✅ **Unique File Naming** - Hexadecimal identifiers prevent filename collisions
 - ✅ **Text Extraction** - Full text content extraction with word counting
 - ✅ **Image Extraction** - Extracts images from all pages with proper tracking
+- ✅ **PDF Download** - Download original PDFs from detail pages
 - ✅ **Modular architecture** - Separated concerns into dedicated modules
 - ✅ **Deduplication** - Prevents duplicate processing
 - ✅ **Configuration management** - Centralized settings in config.py
 - ✅ **Proper logging** - Comprehensive logging framework
 - ✅ **Better error handling** - Graceful failure handling with detailed error reporting
 - ✅ **Database query utility** - Easy database exploration and analysis
+- ✅ **Embeddings management** - Generate, delete, and regenerate embeddings per PDF
+- ✅ **Statistics dashboard** - Comprehensive statistics including embeddings metrics
 - ✅ **Documentation** - Comprehensive inline documentation and README
 
 ## Dependencies
