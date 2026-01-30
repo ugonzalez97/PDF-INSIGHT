@@ -19,14 +19,18 @@
 
 ```
 pdf-insight/
-├── app.py                      # Main application entry point
-├── config.py                   # Centralized configuration
-├── pdf_processor.py            # PDF reading and metadata extraction
-├── file_manager.py             # File system operations
-├── database.py                 # SQLite database operations
-├── metadata_storage.py         # Legacy JSON storage (deprecated)
-├── db_query.py                 # Database query utility
-├── utils.py                    # Legacy utilities (deprecated)
+├── src/                        # Source code
+│   ├── __init__.py            # Package initialization
+│   ├── app.py                 # Main application logic
+│   ├── config.py              # Centralized configuration
+│   ├── pdf_processor.py       # PDF reading and metadata extraction
+│   ├── file_manager.py        # File system operations
+│   ├── database.py            # SQLite database operations
+│   ├── metadata_storage.py    # Legacy JSON storage (deprecated)
+│   ├── db_query.py            # Database query utility
+│   └── utils.py               # Legacy utilities (deprecated)
+├── main.py                     # Entry point for application
+├── query.py                    # Entry point for database queries
 ├── requirements.txt            # Python dependencies
 ├── pdf_insight.db              # SQLite database
 ├── complete_metadata.json      # Legacy metadata (for reference)
@@ -66,7 +70,7 @@ pdf-insight/
 
 2. Run the application:
    ```bash
-   python app.py
+   python main.py
    ```
 
 3. Find results:
@@ -82,21 +86,21 @@ Use the included query utility to explore the database:
 
 ```bash
 # List all processed PDFs
-python db_query.py list
+python query.py list
 
 # Show statistics
-python db_query.py stats
+python query.py stats
 
 # List all extracted files
-python db_query.py files
+python query.py files
 
 # Show details for a specific PDF
-python db_query.py show example.pdf
+python query.py show example.pdf
 ```
 
 ### Configuration
 
-Edit [config.py](config.py) to customize behavior:
+Edit [src/config.py](src/config.py) to customize behavior:
 
 ```python
 # Processing options
