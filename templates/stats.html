@@ -14,6 +14,7 @@
                 <li><a href="/">Home</a></li>
                 <li><a href="/pdfs">PDFs</a></li>
                 <li><a href="/stats" class="active">Statistics</a></li>
+                <li><a href="/embeddings">Embeddings</a></li>
                 <li><a href="/upload">Upload</a></li>
                 <li><a href="/process">Process</a></li>
             </ul>
@@ -64,8 +65,39 @@
             </div>
         </div>
 
+        <!-- Embeddings Statistics -->
+        <div class="detail-section" style="margin-top: 2rem;">
+            <h3>🧠 Embeddings Statistics</h3>
+            <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+                <div class="stat-card">
+                    <div class="stat-icon">🔢</div>
+                    <div class="stat-value">{{ "{:,}".format(stats.total_embeddings) }}</div>
+                    <div class="stat-label">Total Embeddings</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div class="stat-value">{{ stats.pdfs_with_embeddings }}</div>
+                    <div class="stat-label">PDFs with Embeddings</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-value">{{ "{:,}".format(stats.total_embeddings_chunks) }}</div>
+                    <div class="stat-label">Total Chunks</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon">🤖</div>
+                    <div class="stat-value" style="font-size: 0.8rem;">{{ stats.embeddings_model }}</div>
+                    <div class="stat-label">Model</div>
+                </div>
+            </div>
+        </div>
+
         <div class="action-section">
             <a href="/pdfs" class="btn">View All PDFs</a>
+            <a href="/embeddings" class="btn">Manage Embeddings</a>
             <a href="/upload" class="btn">Upload PDFs</a>
             <a href="/process" class="btn btn-primary">Process More PDFs</a>
         </div>

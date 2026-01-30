@@ -14,6 +14,7 @@
                 <li><a href="/">Home</a></li>
                 <li><a href="/pdfs" class="active">PDFs</a></li>
                 <li><a href="/stats">Statistics</a></li>
+                <li><a href="/embeddings">Embeddings</a></li>
                 <li><a href="/upload">Upload</a></li>
                 <li><a href="/process">Process</a></li>
             </ul>
@@ -24,6 +25,11 @@
         <div class="page-header">
             <a href="/pdfs" class="back-link">← Back to list</a>
             <h2>{{ pdf.filename }}</h2>
+            <div style="margin-top: 1rem;">
+                <a href="/api/download-pdf/{{ pdf.filename }}" class="btn btn-primary" download>
+                    📥 Download PDF
+                </a>
+            </div>
         </div>
 
         <div class="detail-section">

@@ -52,7 +52,10 @@ class Database:
                     total_images INTEGER,
                     total_attachments INTEGER,
                     processed_at TEXT NOT NULL,
-                    file_hash TEXT
+                    file_hash TEXT,
+                    has_embeddings INTEGER DEFAULT 0,
+                    embeddings_count INTEGER DEFAULT 0,
+                    embeddings_generated_at TEXT
                 )
             ''')
             
@@ -82,10 +85,27 @@ class Database:
                 )
             ''')
             
+            # Check if embeddings columns exist, add them if not (for existing databases)
+            cursor.execute("PRAGMA table_info(pdf_documents)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'has_embeddings' not in columns:
+                cursor.execute('ALTER TABLE pdf_documents ADD COLUMN has_embeddings INTEGER DEFAULT 0')
+                logger.info("Added has_embeddings column to pdf_documents table")
+            
+            if 'embeddings_count' not in columns:
+                cursor.execute('ALTER TABLE pdf_documents ADD COLUMN embeddings_count INTEGER DEFAULT 0')
+                logger.info("Added embeddings_count column to pdf_documents table")
+            
+            if 'embeddings_generated_at' not in columns:
+                cursor.execute('ALTER TABLE pdf_documents ADD COLUMN embeddings_generated_at TEXT')
+                logger.info("Added embeddings_generated_at column to pdf_documents table")
+            
             # Create indexes for better performance
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_pdf_filename ON pdf_documents(filename)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_images_pdf_id ON images(pdf_id)')
             cursor.execute('CREATE INDEX IF NOT EXISTS idx_texts_pdf_id ON texts(pdf_id)')
+            cursor.execute('CREATE INDEX IF NOT EXISTS idx_pdf_embeddings ON pdf_documents(has_embeddings)')
             
             conn.commit()
             logger.debug("Database tables created successfully")
@@ -417,6 +437,115 @@ class Database:
         try:
             cursor.execute('SELECT COUNT(*) FROM pdf_documents')
             return cursor.fetchone()[0]
+        finally:
+            conn.close()
+    
+    def update_embeddings_status(self, pdf_id: int, embeddings_count: int) -> bool:
+        """
+        Update the embeddings status for a PDF document.
+        
+        Args:
+            pdf_id: Database ID of the PDF
+            embeddings_count: Number of embeddings generated
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            from datetime import datetime
+            
+            cursor.execute('''
+                UPDATE pdf_documents 
+                SET has_embeddings = 1,
+                    embeddings_count = ?,
+                    embeddings_generated_at = ?
+                WHERE id = ?
+            ''', (embeddings_count, datetime.now().isoformat(), pdf_id))
+            
+            conn.commit()
+            logger.info(f"Updated embeddings status for PDF ID {pdf_id}: {embeddings_count} embeddings")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error updating embeddings status for PDF ID {pdf_id}: {e}")
+            conn.rollback()
+            return False
+        finally:
+            conn.close()
+    
+    def clear_embeddings_status(self, pdf_id: int) -> bool:
+        """
+        Clear the embeddings status for a PDF document.
+        
+        Args:
+            pdf_id: Database ID of the PDF
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('''
+                UPDATE pdf_documents 
+                SET has_embeddings = 0,
+                    embeddings_count = 0,
+                    embeddings_generated_at = NULL
+                WHERE id = ?
+            ''', (pdf_id,))
+            
+            conn.commit()
+            logger.info(f"Cleared embeddings status for PDF ID {pdf_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error clearing embeddings status for PDF ID {pdf_id}: {e}")
+            conn.rollback()
+            return False
+        finally:
+            conn.close()
+    
+    def get_pdfs_without_embeddings(self):
+        """
+        Get all PDFs that don't have embeddings generated yet.
+        
+        Returns:
+            list: List of PDF dictionaries without embeddings
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('SELECT * FROM pdf_documents WHERE has_embeddings = 0 OR has_embeddings IS NULL')
+            rows = cursor.fetchall()
+            
+            columns = [description[0] for description in cursor.description]
+            return [dict(zip(columns, row)) for row in rows]
+            
+        finally:
+            conn.close()
+    
+    def get_pdfs_with_embeddings(self):
+        """
+        Get all PDFs that have embeddings generated.
+        
+        Returns:
+            list: List of PDF dictionaries with embeddings
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('SELECT * FROM pdf_documents WHERE has_embeddings = 1')
+            rows = cursor.fetchall()
+            
+            columns = [description[0] for description in cursor.description]
+            return [dict(zip(columns, row)) for row in rows]
+            
         finally:
             conn.close()
     

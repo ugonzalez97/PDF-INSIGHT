@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Embeddings - PDF-Insight</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">📄 PDF-Insight</a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/pdfs">PDFs</a></li>
+                <li><a href="/stats">Statistics</a></li>
+                <li><a href="/embeddings" class="active">Embeddings</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/process">Process</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>Embeddings Management</h2>
+            <p>Generate and manage vector embeddings for semantic search</p>
+        </div>
+
+        <!-- Statistics -->
+        <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 2rem;">
+            <div class="stat-card">
+                <div class="stat-icon">🔢</div>
+                <div class="stat-value">{{ stats.total_embeddings }}</div>
+                <div class="stat-label">Total Embeddings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">✅</div>
+                <div class="stat-value">{{ pdfs_with_embeddings|length }}</div>
+                <div class="stat-label">PDFs with Embeddings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">⏳</div>
+                <div class="stat-value">{{ pdfs_without_embeddings|length }}</div>
+                <div class="stat-label">PDFs without Embeddings</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon">🤖</div>
+                <div class="stat-value" style="font-size: 0.9rem;">{{ stats.model_name }}</div>
+                <div class="stat-label">Model</div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="action-section" style="margin-bottom: 2rem;">
+            <button id="generate-all-btn" class="btn btn-primary" onclick="generateAllEmbeddings()" 
+                    {% if pdfs_without_embeddings|length == 0 %}disabled{% endif %}>
+                Generate All Embeddings
+            </button>
+            <a href="/search" class="btn">Search Embeddings</a>
+        </div>
+
+        <div id="result-message" class="result-message" style="display: none; margin-bottom: 2rem;"></div>
+
+        <!-- PDFs without embeddings -->
+        {% if pdfs_without_embeddings %}
+        <div class="detail-section">
+            <h3>PDFs without Embeddings ({{ pdfs_without_embeddings|length }})</h3>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Filename</th>
+                            <th>Title</th>
+                            <th>Words</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pdf in pdfs_without_embeddings %}
+                        <tr>
+                            <td>{{ pdf.id }}</td>
+                            <td class="filename">{{ pdf.filename }}</td>
+                            <td>{{ pdf.title or 'N/A' }}</td>
+                            <td>{{ "{:,}".format(pdf.total_words or 0) }}</td>
+                            <td>
+                                <button class="btn btn-small btn-primary" onclick="generateEmbeddings({{ pdf.id }}, '{{ pdf.filename }}')">
+                                    Generate
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- PDFs with embeddings -->
+        {% if pdfs_with_embeddings %}
+        <div class="detail-section" style="margin-top: 2rem;">
+            <h3>PDFs with Embeddings ({{ pdfs_with_embeddings|length }})</h3>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Filename</th>
+                            <th>Title</th>
+                            <th>Chunks</th>
+                            <th>Generated At</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pdf in pdfs_with_embeddings %}
+                        <tr>
+                            <td>{{ pdf.id }}</td>
+                            <td class="filename">{{ pdf.filename }}</td>
+                            <td>{{ pdf.title or 'N/A' }}</td>
+                            <td>{{ pdf.embeddings_count }}</td>
+                            <td>{{ pdf.embeddings_generated_at[:19] if pdf.embeddings_generated_at else 'N/A' }}</td>
+                            <td>
+                                <button class="btn btn-small" onclick="deleteEmbeddings({{ pdf.id }}, '{{ pdf.filename }}')">
+                                    Delete
+                                </button>
+                                <button class="btn btn-small btn-primary" onclick="regenerateEmbeddings({{ pdf.id }}, '{{ pdf.filename }}')">
+                                    Regenerate
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if not pdfs_with_embeddings and not pdfs_without_embeddings %}
+        <div class="empty-state">
+            <p>No PDFs available. Process some PDFs first.</p>
+            <a href="/process" class="btn btn-primary">Process PDFs</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PDF-Insight - PDF processing system</p>
+    </footer>
+
+    <script>
+        async function generateEmbeddings(pdfId, filename) {
+            const resultDiv = document.getElementById('result-message');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result-message';
+            resultDiv.innerHTML = '<div class="spinner"></div><p>Generating embeddings...</p>';
+
+            try {
+                const response = await fetch(`/api/embeddings/generate/${pdfId}`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result-message success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ Embeddings Generated</h4>
+                        <p>${data.embeddings_count} chunks created for ${filename}</p>
+                    `;
+                    setTimeout(() => location.reload(), 2000);
+                } else {
+                    throw new Error(data.detail || 'Generation failed');
+                }
+            } catch (error) {
+                resultDiv.className = 'result-message error';
+                resultDiv.innerHTML = `<h4>❌ Error</h4><p>${error.message}</p>`;
+            }
+        }
+
+        async function generateAllEmbeddings() {
+            const btn = document.getElementById('generate-all-btn');
+            const resultDiv = document.getElementById('result-message');
+            
+            btn.disabled = true;
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result-message';
+            resultDiv.innerHTML = '<div class="spinner"></div><p>Generating embeddings for all PDFs...</p>';
+
+            try {
+                const response = await fetch('/api/embeddings/generate-all', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result-message success';
+                    resultDiv.innerHTML = `
+                        <h4>✅ ${data.message}</h4>
+                        <ul>
+                            <li>Total PDFs: ${data.total}</li>
+                            <li>Successfully processed: ${data.processed}</li>
+                            <li>Errors: ${data.errors}</li>
+                        </ul>
+                        ${data.error_details && data.error_details.length > 0 ? `
+                            <h5>Errors:</h5>
+                            <ul>${data.error_details.map(e => `<li>${e}</li>`).join('')}</ul>
+                        ` : ''}
+                    `;
+                    setTimeout(() => location.reload(), 3000);
+                } else {
+                    throw new Error(data.detail || 'Generation failed');
+                }
+            } catch (error) {
+                resultDiv.className = 'result-message error';
+                resultDiv.innerHTML = `<h4>❌ Error</h4><p>${error.message}</p>`;
+                btn.disabled = false;
+            }
+        }
+
+        async function deleteEmbeddings(pdfId, filename) {
+            if (!confirm(`Delete embeddings for ${filename}?`)) return;
+
+            const resultDiv = document.getElementById('result-message');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result-message';
+            resultDiv.innerHTML = '<p>Deleting embeddings...</p>';
+
+            try {
+                const response = await fetch(`/api/embeddings/${pdfId}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    resultDiv.className = 'result-message success';
+                    resultDiv.innerHTML = `<h4>✅ Deleted ${data.deleted_count} embeddings</h4>`;
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    throw new Error(data.detail || 'Deletion failed');
+                }
+            } catch (error) {
+                resultDiv.className = 'result-message error';
+                resultDiv.innerHTML = `<h4>❌ Error</h4><p>${error.message}</p>`;
+            }
+        }
+
+        async function regenerateEmbeddings(pdfId, filename) {
+            if (!confirm(`Regenerate embeddings for ${filename}?`)) return;
+
+            // First delete
+            try {
+                await fetch(`/api/embeddings/${pdfId}`, { method: 'DELETE' });
+                // Then generate
+                await generateEmbeddings(pdfId, filename);
+            } catch (error) {
+                const resultDiv = document.getElementById('result-message');
+                resultDiv.className = 'result-message error';
+                resultDiv.innerHTML = `<h4>❌ Error</h4><p>${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -16,6 +16,7 @@ import config
 from database import Database
 from pdf_processor import PDFProcessor
 from file_manager import FileManager
+from embeddings import EmbeddingsManager
 
 
 # Initialize FastAPI app
@@ -29,8 +30,16 @@ app = FastAPI(
 templates = Jinja2Templates(directory="templates")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Initialize database
+# Initialize database and embeddings manager
 db = Database(config.DATABASE_FILE)
+embeddings_manager = None  # Lazy initialization
+
+def get_embeddings_manager():
+    """Get or initialize the embeddings manager."""
+    global embeddings_manager
+    if embeddings_manager is None:
+        embeddings_manager = EmbeddingsManager()
+    return embeddings_manager
 
 # Setup logging
 logger = logging.getLogger(__name__)
@@ -93,13 +102,32 @@ async def stats_page(request: Request):
     else:
         total_pages = total_words = total_images = avg_pages = avg_words = 0
     
+    # Get embeddings statistics
+    try:
+        em = get_embeddings_manager()
+        embeddings_stats = em.get_collection_stats()
+        pdfs_with_embeddings = db.get_pdfs_with_embeddings()
+        total_embeddings_chunks = sum(pdf.get('embeddings_count', 0) or 0 for pdf in pdfs_with_embeddings)
+    except Exception as e:
+        logger.warning(f"Error getting embeddings stats: {e}")
+        embeddings_stats = {
+            "total_embeddings": 0,
+            "total_pdfs_with_embeddings": 0,
+            "model_name": "N/A"
+        }
+        total_embeddings_chunks = 0
+    
     stats = {
         "total_pdfs": len(pdfs),
         "total_pages": total_pages,
         "total_words": total_words,
         "total_images": total_images,
         "avg_pages": avg_pages,
-        "avg_words": avg_words
+        "avg_words": avg_words,
+        "total_embeddings": embeddings_stats.get("total_embeddings", 0),
+        "pdfs_with_embeddings": embeddings_stats.get("total_pdfs_with_embeddings", 0),
+        "total_embeddings_chunks": total_embeddings_chunks,
+        "embeddings_model": embeddings_stats.get("model_name", "N/A")
     }
     
     return templates.TemplateResponse("stats.html", {
@@ -379,3 +407,234 @@ async def get_text(filename: str):
     if not text_path.exists():
         raise HTTPException(status_code=404, detail="Text file not found")
     return FileResponse(text_path)
+
+
+@app.get("/api/download-pdf/{filename}")
+async def download_pdf(filename: str):
+    """Download a processed PDF file."""
+    # Try processed directory first
+    pdf_path = config.PROCESSED_DIR / filename
+    if not pdf_path.exists():
+        # Try pending directory as fallback
+        pdf_path = config.PENDING_DIR / filename
+        if not pdf_path.exists():
+            raise HTTPException(status_code=404, detail="PDF file not found")
+    
+    return FileResponse(
+        path=str(pdf_path),
+        media_type="application/pdf",
+        filename=filename
+    )
+
+
+# ==================== Embeddings Views ====================
+
+@app.get("/embeddings", response_class=HTMLResponse)
+async def embeddings_page(request: Request):
+    """Page for managing embeddings."""
+    pdfs_with = db.get_pdfs_with_embeddings()
+    pdfs_without = db.get_pdfs_without_embeddings()
+    
+    em = get_embeddings_manager()
+    stats = em.get_collection_stats()
+    
+    return templates.TemplateResponse("embeddings.html", {
+        "request": request,
+        "pdfs_with_embeddings": pdfs_with,
+        "pdfs_without_embeddings": pdfs_without,
+        "stats": stats
+    })
+
+
+@app.get("/search", response_class=HTMLResponse)
+async def search_page(request: Request):
+    """Page for searching embeddings."""
+    pdfs = db.get_pdfs_with_embeddings()
+    return templates.TemplateResponse("search.html", {
+        "request": request,
+        "pdfs": pdfs
+    })
+
+
+# ==================== Embeddings API Endpoints ====================
+
+@app.post("/api/embeddings/generate/{pdf_id}")
+async def generate_embeddings(pdf_id: int) -> Dict[str, Any]:
+    """Generate embeddings for a specific PDF."""
+    try:
+        # Get PDF info
+        pdf = db.get_pdf_by_id(pdf_id)
+        if not pdf:
+            raise HTTPException(status_code=404, detail="PDF not found")
+        
+        # Get text file
+        text_info = db.get_text_by_pdf_id(pdf_id)
+        if not text_info:
+            raise HTTPException(status_code=400, detail="No text extracted for this PDF")
+        
+        # Read text file
+        text_path = config.TEXT_DIR / text_info['filename']
+        if not text_path.exists():
+            raise HTTPException(status_code=404, detail="Text file not found")
+        
+        with open(text_path, 'r', encoding='utf-8') as f:
+            text_content = f.read()
+        
+        # Generate embeddings
+        em = get_embeddings_manager()
+        embeddings_count = em.add_pdf_embeddings(pdf_id, pdf['filename'], text_content)
+        
+        # Update database
+        db.update_embeddings_status(pdf_id, embeddings_count)
+        
+        return {
+            "success": True,
+            "pdf_id": pdf_id,
+            "filename": pdf['filename'],
+            "embeddings_count": embeddings_count
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error generating embeddings for PDF {pdf_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/embeddings/generate-all")
+async def generate_all_embeddings() -> Dict[str, Any]:
+    """Generate embeddings for all PDFs that don't have them."""
+    try:
+        pdfs_without = db.get_pdfs_without_embeddings()
+        
+        if not pdfs_without:
+            return {
+                "success": True,
+                "message": "All PDFs already have embeddings",
+                "processed": 0,
+                "errors": 0
+            }
+        
+        em = get_embeddings_manager()
+        processed = 0
+        errors = []
+        
+        for pdf in pdfs_without:
+            try:
+                # Get text file
+                text_info = db.get_text_by_pdf_id(pdf['id'])
+                if not text_info:
+                    errors.append(f"{pdf['filename']}: No text extracted")
+                    continue
+                
+                # Read text file
+                text_path = config.TEXT_DIR / text_info['filename']
+                if not text_path.exists():
+                    errors.append(f"{pdf['filename']}: Text file not found")
+                    continue
+                
+                with open(text_path, 'r', encoding='utf-8') as f:
+                    text_content = f.read()
+                
+                # Generate embeddings
+                embeddings_count = em.add_pdf_embeddings(pdf['id'], pdf['filename'], text_content)
+                
+                # Update database
+                db.update_embeddings_status(pdf['id'], embeddings_count)
+                
+                processed += 1
+                logger.info(f"Generated {embeddings_count} embeddings for {pdf['filename']}")
+                
+            except Exception as e:
+                logger.error(f"Error processing {pdf['filename']}: {e}")
+                errors.append(f"{pdf['filename']}: {str(e)}")
+        
+        return {
+            "success": True,
+            "message": f"Generated embeddings for {processed} PDFs",
+            "total": len(pdfs_without),
+            "processed": processed,
+            "errors": len(errors),
+            "error_details": errors if errors else None
+        }
+        
+    except Exception as e:
+        logger.error(f"Error generating all embeddings: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/api/embeddings/{pdf_id}")
+async def delete_embeddings(pdf_id: int) -> Dict[str, Any]:
+    """Delete embeddings for a specific PDF."""
+    try:
+        em = get_embeddings_manager()
+        count = em.delete_pdf_embeddings(pdf_id)
+        
+        # Update database
+        db.clear_embeddings_status(pdf_id)
+        
+        return {
+            "success": True,
+            "pdf_id": pdf_id,
+            "deleted_count": count
+        }
+        
+    except Exception as e:
+        logger.error(f"Error deleting embeddings for PDF {pdf_id}: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/embeddings/stats")
+async def get_embeddings_stats() -> Dict[str, Any]:
+    """Get embeddings statistics."""
+    try:
+        em = get_embeddings_manager()
+        stats = em.get_collection_stats()
+        
+        pdfs_with = db.get_pdfs_with_embeddings()
+        pdfs_without = db.get_pdfs_without_embeddings()
+        
+        return {
+            "collection_stats": stats,
+            "pdfs_with_embeddings": len(pdfs_with),
+            "pdfs_without_embeddings": len(pdfs_without),
+            "total_pdfs": len(pdfs_with) + len(pdfs_without)
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting embeddings stats: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/search")
+async def search_embeddings(request: Dict[str, Any]) -> Dict[str, Any]:
+    """Search embeddings using semantic search."""
+    try:
+        query = request.get("query")
+        if not query:
+            raise HTTPException(status_code=400, detail="Query is required")
+        
+        n_results = request.get("n_results", 10)
+        pdf_id = request.get("pdf_id")
+        
+        em = get_embeddings_manager()
+        results = em.search_embeddings(query, n_results, pdf_id)
+        
+        # Enrich results with PDF info
+        for result in results['results']:
+            pdf_id = result['metadata']['pdf_id']
+            pdf = db.get_pdf_by_id(pdf_id)
+            if pdf:
+                result['pdf_info'] = {
+                    "id": pdf['id'],
+                    "filename": pdf['filename'],
+                    "title": pdf.get('title')
+                }
+        
+        return results
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error searching embeddings: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))

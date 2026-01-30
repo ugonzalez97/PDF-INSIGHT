@@ -7,9 +7,14 @@
 - **Metadata Extraction**: Extracts comprehensive metadata from PDFs including title, author, pages, word count, and more
 - **Image Extraction**: Automatically extracts and saves all images from PDF documents
 - **Text Extraction**: Extracts full text content from PDFs
+- **Semantic Search**: Generate vector embeddings for intelligent content search
+- **Web Interface**: Modern, responsive web UI for all operations
+- **REST API**: Complete API for programmatic access
 - **SQLite Database**: Stores all metadata and file references in a structured database
+- **ChromaDB Vector Store**: Persistent vector database for embeddings
 - **Unique File Naming**: Uses hexadecimal identifiers to prevent filename collisions
 - **Batch Processing**: Processes multiple PDFs in one run
+- **File Upload**: Upload PDFs directly through the web interface
 - **Deduplication**: Avoids reprocessing files that have already been analyzed
 - **File Organization**: Automatically moves processed PDFs to a separate folder
 - **Logging**: Comprehensive logging to both file and console
@@ -22,13 +27,26 @@ pdf-insight/
 ├── src/                        # Source code
 │   ├── __init__.py            # Package initialization
 │   ├── app.py                 # Main application logic
+│   ├── web_api.py             # FastAPI web application
 │   ├── config.py              # Centralized configuration
 │   ├── pdf_processor.py       # PDF reading and metadata extraction
 │   ├── file_manager.py        # File system operations
 │   ├── database.py            # SQLite database operations
-│   ├── metadata_storage.py    # Legacy JSON storage (deprecated)
+│   ├── embeddings.py          # Vector embeddings management
 │   ├── db_query.py            # Database query utility
+│   ├── metadata_storage.py    # Legacy JSON storage (deprecated)
 │   └── utils.py               # Legacy utilities (deprecated)
+├── templates/                  # HTML templates for web interface
+│   ├── index.html             # Home page
+│   ├── pdfs.html              # PDFs list page
+│   ├── pdf_detail.html        # PDF details page
+│   ├── stats.html             # Statistics page
+│   ├── embeddings.html        # Embeddings management page
+│   ├── search.html            # Semantic search page
+│   ├── upload.html            # Upload page
+│   └── process.html           # Processing page
+├── static/                     # Static assets
+│   └── style.css              # Application styles
 ├── tests/                      # Test suite
 │   ├── __init__.py            # Test package initialization
 │   ├── conftest.py            # Shared test fixtures
@@ -44,12 +62,14 @@ pdf-insight/
 │   ├── clean_data.py          # Data cleanup tool
 │   ├── move_pdfs_back.py      # PDF restoration tool
 │   └── README.md              # Scripts documentation
-├── main.py                     # Entry point for application
+├── main.py                     # Entry point for CLI application
+├── web.py                      # Entry point for web interface
 ├── query.py                    # Entry point for database queries
 ├── pytest.ini                  # Pytest configuration
 ├── requirements.txt            # Python dependencies
+├── README.md                   # This file
 ├── pdf_insight.db              # SQLite database
-├── complete_metadata.json      # Legacy metadata (for reference)
+├── chroma_db/                  # ChromaDB vector database
 ├── data/
 │   ├── pending/               # Input folder for PDFs to process
 │   ├── processed/             # Archive folder for processed PDFs
@@ -109,8 +129,11 @@ Then open your browser at: **http://localhost:8000**
 **Web Interface Features:**
 - 📚 **View PDFs**: Browse all processed documents with metadata
 - 📊 **Statistics**: View database statistics and analytics
+- 🧠 **Embeddings**: Generate and search semantic embeddings
+- 🔍 **Semantic Search**: Search through PDF content using natural language
+- 📤 **Upload**: Upload PDF files through the web interface
 - ⚙️ **Process PDFs**: Process new PDFs through the web UI
-- 🔍 **Details**: View detailed information, images, and text for each PDF
+- 📋 **Details**: View detailed information, images, and text for each PDF
 - 📥 **Download**: Download extracted text and images
 
 **API Endpoints:**
@@ -119,9 +142,35 @@ Then open your browser at: **http://localhost:8000**
 - `GET /api/pdf/by-filename/{filename}` - Get PDF by filename
 - `GET /api/stats` - Get database statistics
 - `GET /api/pending` - Get pending files
+- `POST /api/upload` - Upload PDF files
 - `POST /api/process` - Process all pending PDFs
 - `GET /api/image/{filename}` - Get extracted image
 - `GET /api/text/{filename}` - Get extracted text file
+
+**Embeddings API Endpoints:**
+- `POST /api/embeddings/generate/{pdf_id}` - Generate embeddings for a PDF
+- `POST /api/embeddings/generate-all` - Generate embeddings for all PDFs
+- `DELETE /api/embeddings/{pdf_id}` - Delete embeddings for a PDF
+- `GET /api/embeddings/stats` - Get embeddings statistics
+- `POST /api/search` - Search embeddings with semantic search
+
+### Semantic Search with Embeddings
+
+PDF-Insight includes powerful semantic search capabilities using vector embeddings:
+
+**Features:**
+- **Automatic Text Chunking**: Splits PDF text into manageable chunks
+- **Vector Embeddings**: Uses sentence-transformers for high-quality embeddings
+- **ChromaDB Storage**: Persistent vector database for fast similarity search
+- **Semantic Search**: Find relevant content using natural language queries
+- **PDF Filtering**: Search within specific PDFs or across all documents
+- **Metadata Tracking**: Links embeddings to source PDFs in the database
+
+**Usage:**
+1. Process PDFs to extract text (done automatically during processing)
+2. Navigate to the Embeddings page and click "Generate All Embeddings"
+3. Use the Search page to find relevant content using natural language queries
+4. Results show the most similar text chunks with source PDF information
 
 ### Database Query Utility
 
@@ -211,7 +260,8 @@ The application uses SQLite with the following schema:
 Stores main PDF metadata:
 - `id`, `filename`, `title`, `author`, `subject`, `creator`, `producer`
 - `creation_date`, `modification_date`, `num_pages`, `total_words`
-- `total_images`, `total_attachments`, `processed_at`
+- `total_images`, `total_attachments`, `processed_at`, `file_hash`
+- `has_embeddings`, `embeddings_count`, `embeddings_generated_at`
 
 ### images table
 Stores references to extracted images:
@@ -221,6 +271,11 @@ Stores references to extracted images:
 ### texts table
 Stores references to extracted text files:
 - `id`, `pdf_id` (foreign key), `filename`, `word_count`, `extracted_at`
+
+### ChromaDB Collection
+Vector embeddings are stored in ChromaDB with metadata:
+- `pdf_id`, `pdf_filename`, `chunk_index`, `chunk_size`
+- Each chunk includes the original text and its embedding vector
 
 ## File Naming Convention
 
@@ -250,7 +305,25 @@ This version includes:
 
 ## Dependencies
 
+### Core Dependencies
 - **pypdf** (6.6.2) - PDF reading and manipulation
+
+### Web Framework
+- **fastapi** (0.109.0) - Modern web framework for building APIs
+- **uvicorn** (0.27.0) - ASGI server for running FastAPI
+- **jinja2** (3.1.3) - Template engine for HTML rendering
+- **python-multipart** (0.0.6) - Multipart form data parsing for file uploads
+
+### Embeddings & Vector Search
+- **chromadb** (0.4.22) - Vector database for embeddings storage
+- **sentence-transformers** (2.3.1) - Model for generating embeddings
+- **langchain** (0.1.4) - Framework for text processing
+- **langchain-community** (0.0.16) - Additional LangChain components
+
+### Testing
+- **pytest** (8.0.0) - Testing framework
+- **pytest-cov** (4.1.0) - Coverage reporting
+- **pytest-mock** (3.12.0) - Mocking support
 
 ## Development
 
