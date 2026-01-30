@@ -286,6 +286,31 @@ class Database:
         finally:
             conn.close()
     
+    def get_pdf_by_id(self, pdf_id):
+        """
+        Get PDF document by ID.
+        
+        Args:
+            pdf_id (int): ID of the PDF document
+            
+        Returns:
+            dict or None: PDF document data if found, None otherwise
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        try:
+            cursor.execute('SELECT * FROM pdf_documents WHERE id = ?', (pdf_id,))
+            row = cursor.fetchone()
+            
+            if row:
+                columns = [description[0] for description in cursor.description]
+                return dict(zip(columns, row))
+            return None
+            
+        finally:
+            conn.close()
+    
     def get_pdf_by_filename(self, filename):
         """
         Get PDF document by filename.

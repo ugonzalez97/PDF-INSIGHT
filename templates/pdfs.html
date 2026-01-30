@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processed PDFs - PDF-Insight</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">📄 PDF-Insight</a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/pdfs" class="active">PDFs</a></li>
+                <li><a href="/stats">Statistics</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/process">Process</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>Processed PDFs</h2>
+            <p>Total documents: <strong>{{ total }}</strong></p>
+        </div>
+
+        {% if pdfs %}
+        <div class="table-container">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Filename</th>
+                        <th>Title</th>
+                        <th>Author</th>
+                        <th>Pages</th>
+                        <th>Words</th>
+                        <th>Images</th>
+                        <th>Processed</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pdf in pdfs %}
+                    <tr>
+                        <td>{{ pdf.id }}</td>
+                        <td class="filename">{{ pdf.filename }}</td>
+                        <td>{{ pdf.title or 'N/A' }}</td>
+                        <td>{{ pdf.author or 'N/A' }}</td>
+                        <td>{{ pdf.num_pages }}</td>
+                        <td>{{ "{:,}".format(pdf.total_words or 0) }}</td>
+                        <td>{{ pdf.total_images or 0 }}</td>
+                        <td>{{ pdf.processed_at }}</td>
+                        <td>
+                            <a href="/pdf/{{ pdf.id }}" class="btn btn-small">View Details</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No PDFs processed yet.</p>
+            <a href="/upload" class="btn">Upload PDFs</a>
+            <a href="/process" class="btn btn-primary">Process PDFs</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PDF-Insight - PDF processing system</p>
+    </footer>
+</body>
+</html>

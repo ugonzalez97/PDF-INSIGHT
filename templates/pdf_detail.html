@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ pdf.filename }} - PDF-Insight</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">📄 PDF-Insight</a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/pdfs" class="active">PDFs</a></li>
+                <li><a href="/stats">Statistics</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/process">Process</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <a href="/pdfs" class="back-link">← Back to list</a>
+            <h2>{{ pdf.filename }}</h2>
+        </div>
+
+        <div class="detail-section">
+            <h3>General Information</h3>
+            <div class="detail-grid">
+                <div class="detail-item">
+                    <span class="label">ID:</span>
+                    <span class="value">{{ pdf.id }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Filename:</span>
+                    <span class="value">{{ pdf.filename }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Title:</span>
+                    <span class="value">{{ pdf.title or 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Author:</span>
+                    <span class="value">{{ pdf.author or 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Subject:</span>
+                    <span class="value">{{ pdf.subject or 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Creator:</span>
+                    <span class="value">{{ pdf.creator or 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Producer:</span>
+                    <span class="value">{{ pdf.producer or 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Creation date:</span>
+                    <span class="value">{{ pdf.creation_date or 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Modification date:</span>
+                    <span class="value">{{ pdf.modification_date or 'N/A' }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Number of pages:</span>
+                    <span class="value">{{ pdf.num_pages }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Total words:</span>
+                    <span class="value">{{ "{:,}".format(pdf.total_words or 0) }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Total images:</span>
+                    <span class="value">{{ pdf.total_images or 0 }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">File size:</span>
+                    <span class="value">{{ pdf.file_size_bytes or 'N/A' }} bytes</span>
+                </div>
+                <div class="detail-item">
+                    <span class="label">Processed:</span>
+                    <span class="value">{{ pdf.processed_at }}</span>
+                </div>
+            </div>
+        </div>
+
+        {% if images %}
+        <div class="detail-section">
+            <h3>Extracted Images ({{ images|length }})</h3>
+            <div class="images-grid">
+                {% for img in images %}
+                <div class="image-item">
+                    <img src="/api/image/{{ img.filename }}" alt="Image {{ img.image_index }}" loading="lazy">
+                    <p class="image-info">Page {{ img.page_number }}, Index {{ img.image_index }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="detail-section">
+            <h3>Extracted Images</h3>
+            <p class="empty-message">No images were extracted from this PDF.</p>
+        </div>
+        {% endif %}
+
+        {% if text %}
+        <div class="detail-section">
+            <h3>Extracted Text</h3>
+            <div class="text-info">
+                <p><strong>File:</strong> {{ text.filename }}</p>
+                <p><strong>Words:</strong> {{ "{:,}".format(text.word_count) }}</p>
+                <a href="/api/text/{{ text.filename }}" class="btn" download>Download Text</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="detail-section">
+            <h3>Extracted Text</h3>
+            <p class="empty-message">No text was extracted from this PDF.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PDF-Insight - PDF processing system</p>
+    </footer>
+</body>
+</html>

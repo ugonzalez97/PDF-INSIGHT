@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Statistics - PDF-Insight</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">📄 PDF-Insight</a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/pdfs">PDFs</a></li>
+                <li><a href="/stats" class="active">Statistics</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/process">Process</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>Database Statistics</h2>
+        </div>
+
+        {% if stats.total_pdfs > 0 %}
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon">📚</div>
+                <div class="stat-value">{{ stats.total_pdfs }}</div>
+                <div class="stat-label">Processed PDFs</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📄</div>
+                <div class="stat-value">{{ "{:,}".format(stats.total_pages) }}</div>
+                <div class="stat-label">Total Pages</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">✍️</div>
+                <div class="stat-value">{{ "{:,}".format(stats.total_words) }}</div>
+                <div class="stat-label">Total Words</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">🖼️</div>
+                <div class="stat-value">{{ "{:,}".format(stats.total_images) }}</div>
+                <div class="stat-label">Total Images</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📊</div>
+                <div class="stat-value">{{ "%.1f"|format(stats.avg_pages) }}</div>
+                <div class="stat-label">Average Pages per PDF</div>
+            </div>
+
+            <div class="stat-card">
+                <div class="stat-icon">📈</div>
+                <div class="stat-value">{{ "{:,.0f}".format(stats.avg_words) }}</div>
+                <div class="stat-label">Average Words per PDF</div>
+            </div>
+        </div>
+
+        <div class="action-section">
+            <a href="/pdfs" class="btn">View All PDFs</a>
+            <a href="/upload" class="btn">Upload PDFs</a>
+            <a href="/process" class="btn btn-primary">Process More PDFs</a>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>No data available yet.</p>
+            <a href="/upload" class="btn">Upload PDFs</a>
+            <a href="/process" class="btn btn-primary">Process PDFs</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PDF-Insight - PDF processing system</p>
+    </footer>
+</body>
+</html>

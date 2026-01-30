@@ -96,6 +96,33 @@ pdf-insight/
    - **Processed PDFs**: Moved to `data/processed/`
    - **Logs**: Written to `logs/pdf_insight.log`
 
+### Web Interface
+
+Launch the web interface for a user-friendly experience:
+
+```bash
+python web.py
+```
+
+Then open your browser at: **http://localhost:8000**
+
+**Web Interface Features:**
+- 📚 **View PDFs**: Browse all processed documents with metadata
+- 📊 **Statistics**: View database statistics and analytics
+- ⚙️ **Process PDFs**: Process new PDFs through the web UI
+- 🔍 **Details**: View detailed information, images, and text for each PDF
+- 📥 **Download**: Download extracted text and images
+
+**API Endpoints:**
+- `GET /api/pdfs` - Get all PDFs
+- `GET /api/pdf/{pdf_id}` - Get PDF details by ID
+- `GET /api/pdf/by-filename/{filename}` - Get PDF by filename
+- `GET /api/stats` - Get database statistics
+- `GET /api/pending` - Get pending files
+- `POST /api/process` - Process all pending PDFs
+- `GET /api/image/{filename}` - Get extracted image
+- `GET /api/text/{filename}` - Get extracted text file
+
 ### Database Query Utility
 
 Use the included query utility to explore the database:

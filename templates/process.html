@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Process PDFs - PDF-Insight</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">📄 PDF-Insight</a>
+            <ul class="nav-links">
+                <li><a href="/">Home</a></li>
+                <li><a href="/pdfs">PDFs</a></li>
+                <li><a href="/stats">Statistics</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/process" class="active">Process</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h2>Process PDFs</h2>
+            <p>Pending files: <strong id="pending-count">{{ pending_count }}</strong></p>
+        </div>
+
+        <div class="process-section">
+            <div class="info-box">
+                <h3>📁 Pending Files</h3>
+                {% if pending_files %}
+                <ul class="file-list">
+                    {% for file in pending_files %}
+                    <li>{{ file }}</li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="empty-message">No pending files in data/pending/ directory</p>
+                {% endif %}
+            </div>
+
+            <div class="action-box">
+                <h3>⚙️ Process</h3>
+                <p>Click the button to process all pending PDFs. Metadata, images, and text will be extracted from each document.</p>
+                
+                <button id="process-btn" class="btn btn-primary btn-large" onclick="processPDFs()" {% if pending_count == 0 %}disabled{% endif %}>
+                    Process All PDFs
+                </button>
+
+                <div id="processing-status" class="processing-status" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Processing PDFs...</p>
+                </div>
+
+                <div id="result-message" class="result-message" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>ℹ️ Information</h3>
+            <ul>
+                <li>Place PDF files in the <code>data/pending/</code> folder or use the <a href="/upload">Upload</a> page</li>
+                <li>Already processed PDFs will be automatically skipped</li>
+                <li>After processing, files will be moved to <code>data/processed/</code></li>
+                <li>Images will be saved in <code>data/images/</code></li>
+                <li>Extracted text will be saved in <code>data/text/</code></li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PDF-Insight - PDF processing system</p>
+    </footer>
+
+    <script>
+        async function processPDFs() {
+            const btn = document.getElementById('process-btn');
+            const status = document.getElementById('processing-status');
+            const result = document.getElementById('result-message');
+            
+            // Disable button and show processing status
+            btn.disabled = true;
+            status.style.display = 'block';
+            result.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/process', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                // Hide processing status
+                status.style.display = 'none';
+                
+                // Show result
+                result.style.display = 'block';
+                
+                if (data.success) {
+                    result.className = 'result-message success';
+                    result.innerHTML = `
+                        <h4>✅ Processing Complete</h4>
+                        <ul>
+                            <li>Total files: ${data.total}</li>
+                            <li>Successfully processed: ${data.processed}</li>
+                            <li>Skipped (already processed): ${data.skipped}</li>
+                            <li>Errors: ${data.errors}</li>
+                            ${data.moved ? `<li>Files moved: ${data.moved}</li>` : ''}
+                        </ul>
+                        ${data.error_details && data.error_details.length > 0 ? `
+                            <h5>Error details:</h5>
+                            <ul>
+                                ${data.error_details.map(e => `<li>${e}</li>`).join('')}
+                            </ul>
+                        ` : ''}
+                        <a href="/pdfs" class="btn">View Processed PDFs</a>
+                    `;
+                    
+                    // Update pending count
+                    document.getElementById('pending-count').textContent = '0';
+                } else {
+                    result.className = 'result-message error';
+                    result.innerHTML = `<h4>❌ Error</h4><p>${data.message || 'Unknown error'}</p>`;
+                    btn.disabled = false;
+                }
+                
+            } catch (error) {
+                status.style.display = 'none';
+                result.style.display = 'block';
+                result.className = 'result-message error';
+                result.innerHTML = `<h4>❌ Error</h4><p>${error.message}</p>`;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

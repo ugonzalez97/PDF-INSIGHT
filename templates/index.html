@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PDF-Insight</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <a href="/" class="logo">📄 PDF-Insight</a>
+            <ul class="nav-links">
+                <li><a href="/" class="active">Home</a></li>
+                <li><a href="/pdfs">PDFs</a></li>
+                <li><a href="/stats">Statistics</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/process">Process</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="hero">
+            <h2>Welcome to PDF-Insight</h2>
+            <p>Batch PDF processing application</p>
+        </div>
+
+        <div class="cards">
+            <div class="card">
+                <div class="card-icon">📚</div>
+                <h3>View PDFs</h3>
+                <p>Browse all processed documents in the database</p>
+                <a href="/pdfs" class="btn">View PDFs</a>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">📊</div>
+                <h3>Statistics</h3>
+                <p>View statistics about processed documents</p>
+                <a href="/stats" class="btn">View Statistics</a>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">📤</div>
+                <h3>Upload PDFs</h3>
+                <p>Upload new PDF files to the system</p>
+                <a href="/upload" class="btn btn-primary">Upload</a>
+            </div>
+
+            <div class="card">
+                <div class="card-icon">⚙️</div>
+                <h3>Process PDFs</h3>
+                <p>Process pending PDF files</p>
+                <a href="/process" class="btn btn-primary">Process</a>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <h3>Features</h3>
+            <ul>
+                <li><strong>Metadata Extraction:</strong> Title, author, pages, word count, and more</li>
+                <li><strong>Image Extraction:</strong> Automatically saves all images</li>
+                <li><strong>Text Extraction:</strong> Extracts full text content</li>
+                <li><strong>SQLite Database:</strong> Stores all information in a structured format</li>
+                <li><strong>Batch Processing:</strong> Process multiple PDFs at once</li>
+                <li><strong>Deduplication:</strong> Avoids reprocessing already analyzed files</li>
+            </ul>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 PDF-Insight - PDF processing system</p>
+    </footer>
+</body>
+</html>
