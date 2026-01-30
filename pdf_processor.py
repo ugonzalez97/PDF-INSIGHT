@@ -180,7 +180,7 @@ class PDFProcessor:
         
         for page_num, page in enumerate(reader.pages):
             try:
-                for _, img in enumerate(page.images):
+                for index, img in enumerate(page.images):
                     image_data = img.data
                     
                     # Generate image filename
@@ -201,7 +201,27 @@ class PDFProcessor:
                         
             except Exception as e:
                 logger.error(f"Error extracting images from {pdf_filename} page {page_num + 1}: {e}")
-                return images_extracted
-            
-            logger.info(f"Total images extracted from {pdf_filename}: {images_extracted}")
-            return images_extracted
+        
+        logger.info(f"Total images extracted from {pdf_filename}: {images_extracted}")
+        return images_extracted
+
+    @staticmethod
+    def extract_text(reader):
+        """
+        Extract text from all pages of the PDF.
+        
+        Args:
+            reader (PdfReader): PdfReader object
+        Returns:
+            str: Extracted text content
+        """
+        full_text = []
+        for page_num, page in enumerate(reader.pages):
+            try:
+                text = page.extract_text()
+                if text:
+                    full_text.append(text)
+            except Exception as e:
+                logger.error(f"Error extracting text from page {page_num + 1}: {e}")
+        
+        return "\n".join(full_text)

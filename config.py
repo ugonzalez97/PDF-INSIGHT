@@ -13,6 +13,7 @@ DATA_DIR = BASE_DIR / "data"
 PENDING_DIR = DATA_DIR / "pending"
 PROCESSED_DIR = DATA_DIR / "processed"
 IMAGES_DIR = DATA_DIR / "images"
+TEXT_DIR = DATA_DIR / "text"
 
 # Metadata storage
 METADATA_FILE = BASE_DIR / "complete_metadata.json"
@@ -25,6 +26,7 @@ LOG_FORMAT = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 
 # Processing options
 EXTRACT_IMAGES = True
+EXTRACT_TEXT = True
 MOVE_AFTER_PROCESSING = True
 SKIP_PROCESSED_FILES = True  # Avoid reprocessing files already in metadata
 

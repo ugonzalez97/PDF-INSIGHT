@@ -135,3 +135,32 @@ class FileManager:
         except Exception as e:
             logger.error(f"Error getting file size for {file_path}: {e}")
             return None
+        
+    @staticmethod
+    def save_text_file(pdf_name, text_content, output_dir):
+        """
+        Save extracted text content to a .txt file.
+        
+        Args:
+            pdf_name (str): Name of the PDF file (without extension)
+            text_content (str): Extracted text content
+            output_dir (str or Path): Directory to save the text file
+            
+        Returns:
+            Path or None: Path to the saved text file if successful, None otherwise
+        """
+        try:
+            output_dir = Path(output_dir)
+            output_dir.mkdir(parents=True, exist_ok=True)
+            
+            text_file_path = output_dir / f"{pdf_name}.txt"
+            
+            with open(text_file_path, 'w', encoding='utf-8') as text_file:
+                text_file.write(text_content)
+            
+            logger.info(f"Saved extracted text to {text_file_path}")
+            return text_file_path
+            
+        except Exception as e:
+            logger.error(f"Error saving text file for {pdf_name}: {e}")
+            return None

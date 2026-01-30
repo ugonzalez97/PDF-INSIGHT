@@ -94,6 +94,19 @@ def run():
                         config.IMAGE_NAME_TEMPLATE
                     )
                     logger.info(f"Extracted {images_count} image(s) from: {filename}")
+
+                # Extract text if configured
+                if config.EXTRACT_TEXT:
+                    text_content = pdf_processor.extract_text(reader)
+                    text_file_path = file_manager.save_text_file(
+                        pdf_path.stem, 
+                        text_content, 
+                        config.TEXT_DIR
+                    )
+                    if text_file_path:
+                        logger.info(f"Extracted text saved to: {text_file_path}")
+                    else:
+                        logger.error(f"Failed to save extracted text for: {filename}")
                 
                 processed_count += 1
                 
