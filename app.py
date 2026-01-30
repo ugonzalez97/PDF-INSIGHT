@@ -8,7 +8,7 @@ from pathlib import Path
 import config
 from pdf_processor import PDFProcessor
 from file_manager import FileManager
-from metadata_storage import MetadataStorage
+from database import Database
 
 
 def setup_logging():
@@ -38,7 +38,7 @@ def run():
         # Initialize components
         pdf_processor = PDFProcessor()
         file_manager = FileManager()
-        metadata_storage = MetadataStorage(config.METADATA_FILE)
+        db = Database(config.DATABASE_FILE)
         
         # Get all PDF files from pending directory
         pdf_files = file_manager.get_pdf_files(config.PENDING_DIR)
@@ -60,10 +60,13 @@ def run():
             
             try:
                 # Check if already processed
-                if config.SKIP_PROCESSED_FILES and metadata_storage.file_exists(filename):
+                if config.SKIP_PROCESSED_FILES and db.pdf_exists(filename):
                     logger.info(f"Skipping {filename} (already processed)")
                     skipped_count += 1
                     continue
+                
+                # Generate unique hex ID for this PDF
+                hex_id = Database.generate_hex_id(config.HEX_ID_LENGTH)
                 
                 # Open PDF
                 reader = pdf_processor.open_pdf(pdf_path)
@@ -79,32 +82,51 @@ def run():
                     error_count += 1
                     continue
                 
-                # Save metadata
-                if metadata_storage.add_metadata(filename, metadata):
-                    logger.info(f"Successfully saved metadata for: {filename}")
-                else:
+                # Save metadata to database and get PDF ID
+                pdf_id = db.add_pdf_document(filename, metadata)
+                if not pdf_id:
                     logger.error(f"Failed to save metadata for: {filename}")
+                    error_count += 1
+                    continue
+                
+                logger.info(f"Successfully saved metadata for: {filename} (PDF ID: {pdf_id})")
                 
                 # Extract images if configured
                 if config.EXTRACT_IMAGES:
-                    images_count = pdf_processor.extract_images(
+                    images_info = pdf_processor.extract_images(
                         reader, 
                         filename, 
                         config.IMAGES_DIR,
+                        hex_id,
                         config.IMAGE_NAME_TEMPLATE
                     )
-                    logger.info(f"Extracted {images_count} image(s) from: {filename}")
+                    
+                    # Save image references to database
+                    for img_info in images_info:
+                        db.add_image(
+                            pdf_id,
+                            img_info['filename'],
+                            img_info['page'],
+                            img_info['index'],
+                            img_info['extension']
+                        )
+                    
+                    logger.info(f"Extracted and registered {len(images_info)} image(s) from: {filename}")
 
                 # Extract text if configured
                 if config.EXTRACT_TEXT:
-                    text_content = pdf_processor.extract_text(reader)
-                    text_file_path = file_manager.save_text_file(
+                    text_content, word_count = pdf_processor.extract_text(reader)
+                    text_filename, text_file_path = file_manager.save_text_file(
                         pdf_path.stem, 
                         text_content, 
-                        config.TEXT_DIR
+                        config.TEXT_DIR,
+                        hex_id
                     )
-                    if text_file_path:
-                        logger.info(f"Extracted text saved to: {text_file_path}")
+                    
+                    if text_filename and text_file_path:
+                        # Save text reference to database
+                        db.add_text(pdf_id, text_filename, word_count)
+                        logger.info(f"Extracted text saved to: {text_file_path} ({word_count} words)")
                     else:
                         logger.error(f"Failed to save extracted text for: {filename}")
                 
@@ -131,7 +153,7 @@ def run():
         logger.info(f"  Successfully processed: {processed_count}")
         logger.info(f"  Skipped (already processed): {skipped_count}")
         logger.info(f"  Errors: {error_count}")
-        logger.info(f"  Total files in metadata: {metadata_storage.get_count()}")
+        logger.info(f"  Total PDFs in database: {db.get_pdf_count()}")
         logger.info("=" * 60)
         logger.info("Application finished successfully")
         

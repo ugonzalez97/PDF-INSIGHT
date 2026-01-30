@@ -1,11 +1,14 @@
 # PDF-Insight
 
-**Batch PDF processing application** for extracting metadata and images from PDF files.
+**Batch PDF processing application** for extracting metadata, images, and text from PDF files with SQLite database storage.
 
 ## Features
 
 - **Metadata Extraction**: Extracts comprehensive metadata from PDFs including title, author, pages, word count, and more
 - **Image Extraction**: Automatically extracts and saves all images from PDF documents
+- **Text Extraction**: Extracts full text content from PDFs
+- **SQLite Database**: Stores all metadata and file references in a structured database
+- **Unique File Naming**: Uses hexadecimal identifiers to prevent filename collisions
 - **Batch Processing**: Processes multiple PDFs in one run
 - **Deduplication**: Avoids reprocessing files that have already been analyzed
 - **File Organization**: Automatically moves processed PDFs to a separate folder
@@ -20,14 +23,18 @@ pdf-insight/
 ├── config.py                   # Centralized configuration
 ├── pdf_processor.py            # PDF reading and metadata extraction
 ├── file_manager.py             # File system operations
-├── metadata_storage.py         # Metadata persistence with deduplication
+├── database.py                 # SQLite database operations
+├── metadata_storage.py         # Legacy JSON storage (deprecated)
+├── db_query.py                 # Database query utility
 ├── utils.py                    # Legacy utilities (deprecated)
 ├── requirements.txt            # Python dependencies
-├── complete_metadata.json      # Extracted metadata storage
+├── pdf_insight.db              # SQLite database
+├── complete_metadata.json      # Legacy metadata (for reference)
 ├── data/
 │   ├── pending/               # Input folder for PDFs to process
 │   ├── processed/             # Archive folder for processed PDFs
-│   └── images/                # Extracted images output
+│   ├── images/                # Extracted images output
+│   └── text/                  # Extracted text files output
 └── logs/
     └── pdf_insight.log        # Application logs
 ```
@@ -63,10 +70,29 @@ pdf-insight/
    ```
 
 3. Find results:
-   - **Metadata**: Stored in `complete_metadata.json`
-   - **Images**: Saved in `data/images/`
+   - **Metadata**: Stored in SQLite database `pdf_insight.db`
+   - **Images**: Saved in `data/images/` with unique hexadecimal identifiers
+   - **Text**: Saved in `data/text/` with unique hexadecimal identifiers
    - **Processed PDFs**: Moved to `data/processed/`
    - **Logs**: Written to `logs/pdf_insight.log`
+
+### Database Query Utility
+
+Use the included query utility to explore the database:
+
+```bash
+# List all processed PDFs
+python db_query.py list
+
+# Show statistics
+python db_query.py stats
+
+# List all extracted files
+python db_query.py files
+
+# Show details for a specific PDF
+python db_query.py show example.pdf
+```
 
 ### Configuration
 
@@ -75,52 +101,67 @@ Edit [config.py](config.py) to customize behavior:
 ```python
 # Processing options
 EXTRACT_IMAGES = True              # Extract images from PDFs
+EXTRACT_TEXT = True                # Extract text from PDFs
 MOVE_AFTER_PROCESSING = True       # Move PDFs after processing
 SKIP_PROCESSED_FILES = True        # Skip already processed files
 
 # Logging
 LOG_LEVEL = "INFO"                 # DEBUG, INFO, WARNING, ERROR, CRITICAL
 
+# File naming
+HEX_ID_LENGTH = 8                  # Length of hexadecimal identifiers
+
 # Paths (customize if needed)
 PENDING_DIR = DATA_DIR / "pending"
 PROCESSED_DIR = DATA_DIR / "processed"
 IMAGES_DIR = DATA_DIR / "images"
+TEXT_DIR = DATA_DIR / "text"
+DATABASE_FILE = BASE_DIR / "pdf_insight.db"
 ```
 
-## Metadata Structure
+## Database Structure
 
-The application stores metadata in dictionary format for efficient lookups:
+The application uses SQLite with the following schema:
 
-```json
-{
-  "example.pdf": {
-    "title": "Document Title",
-    "author": "Author Name",
-    "subject": "Document Subject",
-    "creator": "Creator Application",
-    "producer": "PDF Producer",
-    "creation_date": "2024-01-15T10:30:00",
-    "modification_date": "2024-01-20T14:45:00",
-    "num_pages": 42,
-    "total_words": 8532,
-    "total_images": 15,
-    "total_attachments": 0,
-    "processed_at": "2026-01-30T12:34:56.789123"
-  }
-}
-```
+### pdf_documents table
+Stores main PDF metadata:
+- `id`, `filename`, `title`, `author`, `subject`, `creator`, `producer`
+- `creation_date`, `modification_date`, `num_pages`, `total_words`
+- `total_images`, `total_attachments`, `processed_at`
 
-## Key Improvements
+### images table
+Stores references to extracted images:
+- `id`, `pdf_id` (foreign key), `filename`, `page_number`, `image_index`
+- `file_extension`, `extracted_at`
 
-This refactored version includes:
+### texts table
+Stores references to extracted text files:
+- `id`, `pdf_id` (foreign key), `filename`, `word_count`, `extracted_at`
 
+## File Naming Convention
+
+Extracted files use hexadecimal identifiers to ensure uniqueness:
+- Images: `{pdf_name}_{hex_id}_img_{index}.{ext}`
+- Text: `{pdf_name}_{hex_id}_text.txt`
+
+Example:
+- `document_a3f7b9c2_img_1.png`
+- `document_a3f7b9c2_text.txt`
+
+## Key Features
+
+This version includes:
+
+- ✅ **SQLite Database** - Structured storage for all metadata and file references
+- ✅ **Unique File Naming** - Hexadecimal identifiers prevent filename collisions
+- ✅ **Text Extraction** - Full text content extraction with word counting
+- ✅ **Image Extraction** - Extracts images from all pages with proper tracking
 - ✅ **Modular architecture** - Separated concerns into dedicated modules
-- ✅ **Deduplication** - Fixed critical bug preventing duplicate entries
+- ✅ **Deduplication** - Prevents duplicate processing
 - ✅ **Configuration management** - Centralized settings in config.py
-- ✅ **Proper logging** - Replaced print statements with logging framework
+- ✅ **Proper logging** - Comprehensive logging framework
 - ✅ **Better error handling** - Graceful failure handling with detailed error reporting
-- ✅ **Efficient data structure** - Changed from array to dictionary format for O(1) lookups
-- ✅ **Automatic migration** - Converts old metadata format to new format automatically
+- ✅ **Database query utility** - Easy database exploration and analysis
 - ✅ **Documentation** - Comprehensive inline documentation and README
 
 ## Dependencies

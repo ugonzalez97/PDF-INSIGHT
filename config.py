@@ -17,6 +17,7 @@ TEXT_DIR = DATA_DIR / "text"
 
 # Metadata storage
 METADATA_FILE = BASE_DIR / "complete_metadata.json"
+DATABASE_FILE = BASE_DIR / "pdf_insight.db"
 
 # Logging configuration
 LOG_DIR = BASE_DIR / "logs"
@@ -31,7 +32,10 @@ MOVE_AFTER_PROCESSING = True
 SKIP_PROCESSED_FILES = True  # Avoid reprocessing files already in metadata
 
 # Image extraction settings
-IMAGE_NAME_TEMPLATE = "{pdf_name}_image_{index}.{ext}"  # Template for extracted image names
+IMAGE_NAME_TEMPLATE = "{pdf_name}_{hex_id}_img_{index}.{ext}"  # Template for extracted image names
+
+# Hex ID settings
+HEX_ID_LENGTH = 8  # Length of hexadecimal identifiers for file naming
 
 # Ensure directories exist
 def ensure_directories():

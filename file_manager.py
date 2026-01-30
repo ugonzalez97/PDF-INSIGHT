@@ -137,30 +137,33 @@ class FileManager:
             return None
         
     @staticmethod
-    def save_text_file(pdf_name, text_content, output_dir):
+    def save_text_file(pdf_name, text_content, output_dir, hex_id):
         """
-        Save extracted text content to a .txt file.
+        Save extracted text content to a .txt file with hexadecimal identifier.
         
         Args:
             pdf_name (str): Name of the PDF file (without extension)
             text_content (str): Extracted text content
             output_dir (str or Path): Directory to save the text file
+            hex_id (str): Hexadecimal identifier for uniqueness
             
         Returns:
-            Path or None: Path to the saved text file if successful, None otherwise
+            tuple: (filename, Path) if successful, (None, None) otherwise
         """
         try:
             output_dir = Path(output_dir)
             output_dir.mkdir(parents=True, exist_ok=True)
             
-            text_file_path = output_dir / f"{pdf_name}.txt"
+            # Create filename with hex ID
+            text_filename = f"{pdf_name}_{hex_id}_text.txt"
+            text_file_path = output_dir / text_filename
             
             with open(text_file_path, 'w', encoding='utf-8') as text_file:
                 text_file.write(text_content)
             
             logger.info(f"Saved extracted text to {text_file_path}")
-            return text_file_path
+            return text_filename, text_file_path
             
         except Exception as e:
             logger.error(f"Error saving text file for {pdf_name}: {e}")
-            return None
+            return None, None

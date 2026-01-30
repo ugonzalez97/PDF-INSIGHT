@@ -159,7 +159,7 @@ class PDFProcessor:
             return {}
     
     @staticmethod
-    def extract_images(reader, pdf_filename, output_dir, name_template="{pdf_name}_image_{index}.{ext}"):
+    def extract_images(reader, pdf_filename, output_dir, hex_id, name_template="{pdf_name}_{hex_id}_img_{index}.{ext}"):
         """
         Extract all images from a PDF and save them to the output directory.
         
@@ -167,28 +167,34 @@ class PDFProcessor:
             reader (PdfReader): PdfReader object
             pdf_filename (str): Name of the PDF file (for naming images)
             output_dir (Path or str): Directory to save extracted images
+            hex_id (str): Hexadecimal identifier for uniqueness
             name_template (str): Template for image filenames
             
         Returns:
-            int: Number of images extracted
+            list: List of dictionaries with image info (filename, page, index, extension)
         """
         output_dir = Path(output_dir)
         output_dir.mkdir(parents=True, exist_ok=True)
         
         pdf_name = Path(pdf_filename).stem
-        images_extracted = 0
+        images_extracted = []
+        image_counter = 0
         
         for page_num, page in enumerate(reader.pages):
             try:
                 for index, img in enumerate(page.images):
                     image_data = img.data
                     
-                    # Generate image filename
+                    # Get file extension
+                    ext = img.name.split('.')[-1] if '.' in img.name else 'png'
+                    
+                    # Generate image filename with hex ID
                     image_filename = name_template.format(
                         pdf_name=pdf_name,
+                        hex_id=hex_id,
                         page=page_num + 1,
-                        index=images_extracted + 1,
-                        ext=img.name.split('.')[-1] if '.' in img.name else 'png'
+                        index=image_counter + 1,
+                        ext=ext
                     )
                     
                     image_path = output_dir / image_filename
@@ -196,13 +202,20 @@ class PDFProcessor:
                     with open(image_path, 'wb') as img_file:
                         img_file.write(image_data)
                     
-                    images_extracted += 1
+                    images_extracted.append({
+                        'filename': image_filename,
+                        'page': page_num + 1,
+                        'index': image_counter + 1,
+                        'extension': ext
+                    })
+                    
+                    image_counter += 1
                     logger.info(f"Extracted image: {image_path}")
                         
             except Exception as e:
                 logger.error(f"Error extracting images from {pdf_filename} page {page_num + 1}: {e}")
         
-        logger.info(f"Total images extracted from {pdf_filename}: {images_extracted}")
+        logger.info(f"Total images extracted from {pdf_filename}: {len(images_extracted)}")
         return images_extracted
 
     @staticmethod
@@ -213,7 +226,7 @@ class PDFProcessor:
         Args:
             reader (PdfReader): PdfReader object
         Returns:
-            str: Extracted text content
+            tuple: (text_content, word_count)
         """
         full_text = []
         for page_num, page in enumerate(reader.pages):
@@ -224,4 +237,7 @@ class PDFProcessor:
             except Exception as e:
                 logger.error(f"Error extracting text from page {page_num + 1}: {e}")
         
-        return "\n".join(full_text)
+        text_content = "\n".join(full_text)
+        word_count = len(text_content.split()) if text_content else 0
+        
+        return text_content, word_count
