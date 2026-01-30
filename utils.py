@@ -52,17 +52,77 @@ def get_attachment_count(reader):
     return {"total_attachments": 0}
 
 
-def write_metadata_to_json(metadata, file_path):
-    """Write metadata dictionary to a JSON file. Inlcude count of entries."""
+def append_metadata_to_json(filename, metadata, file_path="complete_metadata.json"):
+    """Write metadata dictionary to a JSON file. Maintain a list of entries."""
     import json
+    import os
+
     try:
+        # Read existing data if file exists
+        if os.path.exists(file_path):
+            with open(file_path, 'r') as f:
+                try:
+                    data = json.load(f)
+                    # Ensure data is a list
+                    if not isinstance(data, list):
+                        data = [data]
+                except json.JSONDecodeError:
+                    # File is empty or invalid, start fresh
+                    data = []
+        else:
+            data = []
+
+        # Append new metadata
+        data.append({filename: metadata})
+
+        # Write back to file
         with open(file_path, 'w') as f:
-            entries_count = len(metadata)
-            metadata_with_count = {"entries_count": entries_count, **metadata}
-            json.dump(metadata_with_count, f, indent=4)
-        print(f"Metadata written to {file_path}")
+            json.dump(data, f, indent=4)
+
+        print(f"Metadata written to {file_path}. Total entries: {len(data)}")
     except Exception as e:
         print(f"Error writing metadata to file: {e}")
+
+
+def extract_images_from_pdf(reader, filename, output_folder="data/images"):
+    """Extract images from a PDF and save them to the specified output folder."""
+    import os
+
+    try:
+        if not os.path.exists(output_folder):
+            os.makedirs(output_folder)
+
+        for page_num, page in enumerate(reader.pages):
+            for img_index, img in enumerate(page.images):
+                image_data = img.data
+                image_filename = f"{os.path.splitext(filename)[0]}_page{page_num+1}_img{img_index+1}.{img.name}"
+                image_path = os.path.join(output_folder, image_filename)
+
+                with open(image_path, 'wb') as img_file:
+                    img_file.write(image_data)
+
+                print(f"Extracted image to {image_path}")
+    except Exception as e:
+        print(f"Error extracting images from {filename}: {e}")
+
+
+def move_files_to_processed_folder(source_folder="data/pending", dest_folder="data/processed"):
+    """Move processed files to a 'processed' folder."""
+    import os
+    import shutil
+
+    try:
+        if not os.path.exists(dest_folder):
+            os.makedirs(dest_folder)
+
+        for file_name in os.listdir(source_folder):
+            source_path = os.path.join(source_folder, file_name)
+            dest_path = os.path.join(dest_folder, file_name)
+
+            shutil.move(source_path, dest_path)
+            print(f"Moved {file_name} to {dest_folder}")
+    except Exception as e:
+        print(f"Error moving file {file_name}: {e}")
 
 
 def get_pdf_reader(file_path):
@@ -91,7 +151,8 @@ def get_all_readers(folder_path):
     readers = []
 
     if not os.path.isdir(folder_path):
-        print(f"The folder path {folder_path} does not exist or is not a directory.")
+        print(
+            f"The folder path {folder_path} does not exist or is not a directory.")
         return readers
 
     for filename in os.listdir(folder_path):
