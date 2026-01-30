@@ -86,7 +86,30 @@ pdf-insight/
 - Python 3.7 or higher
 - pip
 
+Or use Docker (recommended):
+- Docker 20.10+
+- Docker Compose 1.29+
+
 ### Setup
+
+#### Option 1: Docker (Recommended)
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd pdf-insight
+   ```
+
+2. Start with Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+3. Access the web interface at `http://localhost:8011`
+
+For detailed Docker instructions, see [README.Docker.md](README.Docker.md)
+
+#### Option 2: Local Python Installation
 
 1. Clone or download this repository:
    ```bash

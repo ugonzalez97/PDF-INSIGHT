@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  pdf-insight-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: pdf-insight-dev
+    ports:
+      - "8011:8011"
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./web.py:/app/web.py
+      - ./config.py:/app/config.py
+      # Persist data directories
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./chroma_db:/app/chroma_db
+      - ./pdf_metadata.db:/app/pdf_metadata.db
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+    restart: unless-stopped
+    command: ["python3", "web.py"]
+
+networks:
+  default:
+    name: pdf-insight-dev-network
