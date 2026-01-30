@@ -29,8 +29,24 @@ pdf-insight/
 │   ├── metadata_storage.py    # Legacy JSON storage (deprecated)
 │   ├── db_query.py            # Database query utility
 │   └── utils.py               # Legacy utilities (deprecated)
+├── tests/                      # Test suite
+│   ├── __init__.py            # Test package initialization
+│   ├── conftest.py            # Shared test fixtures
+│   ├── test_config.py         # Config module tests
+│   ├── test_database.py       # Database tests
+│   ├── test_file_manager.py   # File manager tests
+│   ├── test_pdf_processor.py  # PDF processor tests
+│   ├── test_integration.py    # Integration tests
+│   └── README.md              # Testing documentation
+├── scripts/                    # Maintenance utilities
+│   ├── backup_database.py     # Database backup tool
+│   ├── reset_database.py      # Database reset tool
+│   ├── clean_data.py          # Data cleanup tool
+│   ├── move_pdfs_back.py      # PDF restoration tool
+│   └── README.md              # Scripts documentation
 ├── main.py                     # Entry point for application
 ├── query.py                    # Entry point for database queries
+├── pytest.ini                  # Pytest configuration
 ├── requirements.txt            # Python dependencies
 ├── pdf_insight.db              # SQLite database
 ├── complete_metadata.json      # Legacy metadata (for reference)
@@ -97,6 +113,43 @@ python query.py files
 # Show details for a specific PDF
 python query.py show example.pdf
 ```
+
+### Maintenance Scripts
+
+Utility scripts in [scripts/](scripts/) directory:
+
+```bash
+# Backup database
+python scripts/backup_database.py
+
+# Reset database
+python scripts/reset_database.py
+
+# Clean extracted data
+python scripts/clean_data.py
+
+# Move PDFs back to pending
+python scripts/move_pdfs_back.py
+```
+
+See [scripts/README.md](scripts/README.md) for detailed documentation.
+
+### Running Tests
+
+Run the test suite to verify functionality:
+
+```bash
+# Run all tests
+pytest
+
+# Run with coverage report
+pytest --cov=src --cov-report=html
+
+# Run specific test file
+pytest tests/test_database.py
+```
+
+See [tests/README.md](tests/README.md) for comprehensive testing documentation.
 
 ### Configuration
 
@@ -203,8 +256,8 @@ Contributions are welcome! Please ensure code follows the existing structure and
 
 Potential improvements for future versions:
 - CLI arguments for custom input/output directories
-- Support for CSV/SQLite output formats
-- Unit tests with pytest
+- Support for CSV output formats
 - Progress bar for batch processing
 - PDF validation before processing
 - Parallel processing for large batches
+- REST API for remote processing
